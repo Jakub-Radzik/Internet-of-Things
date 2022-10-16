@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #define KONTAKTRON 11
+#define PIR 3 //ANALOG PIN
 
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
@@ -69,6 +70,7 @@ void initDiody(){
   pinMode(LED_GREEN, OUTPUT);
   pinMode(BUZZ, OUTPUT);
   pinMode(KONTAKTRON, INPUT_PULLUP);
+  pinMode(PIR, INPUT);
   
   delay(100);
   digitalWrite(LED_RED, HIGH);
@@ -97,8 +99,14 @@ void setup() {
 }
 
 void czuwanie() {
+  delay(500);
   while(true){
+    lcd.clear();
+    print_line("CLEAR", 0);
+    delay(100);
     while(digitalRead(KONTAKTRON) == HIGH){
+      lcd.clear();
+      print_line("DOORS OPEN!", 0);
       digitalWrite(LED_GREEN, LOW);
       digitalWrite(LED_RED, HIGH);
       digitalWrite(BUZZ, HIGH);
@@ -106,6 +114,26 @@ void czuwanie() {
       digitalWrite(LED_RED, LOW);
       digitalWrite(BUZZ, LOW);
       delay(200);
+    }
+
+    int ruch = analogRead(PIR);
+    if(ruch > 300){ 
+      lcd.clear();
+      print_line("MOVE DETECTED!", 0);
+      for(int i = 0; i<10;i++){
+        digitalWrite(LED_RED, HIGH);
+        digitalWrite(LED_GREEN, LOW);
+        digitalWrite(BUZZ, HIGH);
+        delay(100);
+        digitalWrite(LED_RED, LOW);
+        digitalWrite(LED_GREEN, HIGH);
+        digitalWrite(BUZZ, LOW);
+        delay(100);
+      }
+    }else{
+      digitalWrite(LED_RED, LOW);
+      digitalWrite(LED_GREEN, LOW);
+      digitalWrite(BUZZ, LOW);
     }
 
     if (digitalRead(KONTAKTRON) == LOW) { //Jeśli czujnik zwarty
