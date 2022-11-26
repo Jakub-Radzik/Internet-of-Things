@@ -1,0 +1,4 @@
+LedRGB	KEYWORD1
+init	KEYWORD2
+setColor	KEYWORD2
+setColorByName	KEYWORD2
