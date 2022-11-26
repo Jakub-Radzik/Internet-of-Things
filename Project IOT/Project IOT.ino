@@ -3,8 +3,7 @@
 #include <Keypad.h>
 #include <stdio.h>
 #include <string.h>
-#define KONTAKTRON 11
-#define PIR 3 //ANALOG PIN
+#define PIR 11 
 
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
@@ -69,7 +68,6 @@ void initDiody(){
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(BUZZ, OUTPUT);
-  pinMode(KONTAKTRON, INPUT_PULLUP);
   pinMode(PIR, INPUT);
   
   delay(100);
@@ -104,20 +102,9 @@ void czuwanie() {
     lcd.clear();
     print_line("CLEAR", 0);
     delay(100);
-    while(digitalRead(KONTAKTRON) == HIGH){
-      lcd.clear();
-      print_line("DOORS OPEN!", 0);
-      digitalWrite(LED_GREEN, LOW);
-      digitalWrite(LED_RED, HIGH);
-      digitalWrite(BUZZ, HIGH);
-      delay(200);
-      digitalWrite(LED_RED, LOW);
-      digitalWrite(BUZZ, LOW);
-      delay(200);
-    }
 
-    int ruch = analogRead(PIR);
-    if(ruch > 300){ 
+    int ruch = digitalRead(PIR);
+    if(ruch == HIGH){ 
       lcd.clear();
       print_line("MOVE DETECTED!", 0);
       for(int i = 0; i<10;i++){
@@ -135,21 +122,26 @@ void czuwanie() {
       digitalWrite(LED_GREEN, LOW);
       digitalWrite(BUZZ, LOW);
     }
-
-    if (digitalRead(KONTAKTRON) == LOW) { //Jeśli czujnik zwarty
-      digitalWrite(LED_RED, LOW); //Stan OK - dioda zielona
-      digitalWrite(LED_GREEN, HIGH);
-    }
   }
+}
+
+void countdown(){
+  
 }
 
 void loop() {
   if(!LOGGED){
     login();
   }else{
-    // userMenu();
-    czuwanie();
+    userMenu();
+    // czuwanie();
   }
+}
+
+void keyPressedSound(){
+  digitalWrite(BUZZ, HIGH);
+  delay(100);
+  digitalWrite(BUZZ, LOW);
 }
 
 void login() {
@@ -169,9 +161,7 @@ void login() {
       while(!lock){ 
         char key = keypad.getKey();
         if(key){
-          digitalWrite(BUZZ, HIGH);
-          delay(100);
-          digitalWrite(BUZZ, LOW);
+          keyPressedSound();
           switch (key){
             case '1':
             case '2':
@@ -229,21 +219,104 @@ void verifyPassword(){
     }
 }
 
+int currentPosition = 0;
+int nextMenuPosition = 1;
+String options[] = {"Czuwanie", "Zmiana PINU", "Testuj alarm"};
+int menuLength = 3;
+
+void printMenu(){
+  lcd.clear();
+  print_line("> "+options[currentPosition], 0);
+  print_line("  "+options[nextMenuPosition], 1);
+}
+
+void incrementPosition(){
+  currentPosition = nextMenuPosition;
+  nextMenuPosition += 1;
+  if(nextMenuPosition==menuLength){
+    nextMenuPosition = 0;
+  }
+}
+
+void decrementPosition(){
+  nextMenuPosition = currentPosition;
+  currentPosition -= 1;
+  if(currentPosition==-1){
+    currentPosition = menuLength - 1;
+  }
+}
+
+void testAlarm(){
+  lcd.clear();
+  print_line("TEST ALARMU", 0);
+  digitalWrite(LED_RED, LOW);
+  digitalWrite(LED_GREEN, LOW);
+  for(int i = 0; i<10; i++){
+    digitalWrite(BUZZ, HIGH);
+    delay(100);
+    digitalWrite(BUZZ, LOW);
+    delay(100);
+  }
+  lcd.clear();
+  print_line("TEST DIOD", 0);
+  for(int i = 0; i<10; i++){
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_GREEN, LOW);
+    delay(100);
+    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_GREEN, HIGH);
+    delay(100);
+  }
+  for(int i = 0; i<10; i++){
+    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_GREEN, LOW);
+    delay(100);
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_GREEN, HIGH);
+    delay(100);
+  }
+
+  digitalWrite(LED_GREEN, HIGH);
+}
+
+void selectOption(){
+  switch(currentPosition){
+    case 0: // Czuwanie
+      break;
+    case 1: // Zmiana PIN
+      break;
+    case 2: // Test alarmu
+      testAlarm();
+      break;
+    default:
+      break;
+  }
+  printMenu();
+}
+
 
 void userMenu(){
-  lcd.clear();
+  printMenu();
   while(true){
     char key = keypad.getKey();
       if(key){
         switch (key){
           case '1':
           case '2':
+            incrementPosition();
+            printMenu();
+            break;
           case '3':
           case '4':
           case '5':
           case '6':
+            selectOption();
+            break;                       
           case '7':
           case '8':
+            decrementPosition();
+            printMenu();
+            break;
           case '9':
           case '0':
             recordPressNumber(key, 0);
@@ -254,8 +327,8 @@ void userMenu(){
           case 'X':
             recordClearButton();
             break;
-          default:
-            printStatment(key);
+          // default:
+            // printStatment(key);
         }
       }
   }
